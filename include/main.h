@@ -35,7 +35,10 @@
 #define PROS_USE_LITERALS
 
 #include "api.h"
+#include <map>
 #include "global.h"
+#include <string>
+#include <iostream>
 
 /**
  * You should add more #includes here

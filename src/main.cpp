@@ -1,8 +1,7 @@
 #include "main.h"
 using namespace pros;
 using namespace std;
-#include <iostream>
-#include <string>
+
 
 /*  This is the constructor of the robot object.
 *   You can name it whatever you want. In this
@@ -33,6 +32,7 @@ void on_center_button() {
 }
 void initialize() {
     lcd::initialize();
+    robot.addConstants(18, .5, 3.25, 6, 1800);
 }
 
 //This is the segment that allows you to control your robot during the driver period
@@ -48,6 +48,7 @@ void opcontrol() {
         */
 
         // if (master.get_digital(DIGITAL_R1)) {
+
         // } else {
         
         // }
@@ -57,6 +58,12 @@ void opcontrol() {
         // } else{
 
         // }
+
+        if(master.get_digital(DIGITAL_LEFT)){
+            robot.assorted[motors["conveyerbelt"]].move(127);
+        }else{
+            robot.assorted[motors["conveyerbelt"]].move(0);
+        }
         
         /*This is the method that reads the joystick input to
         * control your drive. Currently it is in arcade mode(controlled by one joystick)

@@ -7,38 +7,43 @@ class Robot{
         double driveBaseRadius = 0;
         double gearRatio = 0;
         double wheelDiameter = 0;
+        double rpmMod = 0;
         double tickPerRev = 0;
     public:
         //Drive Motors
         MotorGroup leftMotors;
         MotorGroup rightMotors;
+        MotorGroup assorted;
         IMU imu_sensor;
+        IMU imu_sensor2;
+
+        //storage for assorted motors
+        std::vector<int8_t> ports;
+        
                 
         //Constructor
-        Robot(std::initializer_list<std::int8_t> leftMotors, std::initializer_list<std::int8_t> rightMotors, int imu_sensor) 
-        : leftMotors(leftMotors), rightMotors(rightMotors), imu_sensor(imu_sensor) {
+        Robot(std::initializer_list<std::int8_t> leftMotors, std::initializer_list<std::int8_t> rightMotors, int imu_sensor, int imu_sensor2) 
+        : leftMotors(leftMotors), rightMotors(rightMotors), imu_sensor(imu_sensor), imu_sensor2(imu_sensor2), assorted(ports) {
             
         }
 
-        Robot(std::initializer_list<std::int8_t> leftMotors, std::initializer_list<std::int8_t> rightMotors, int imu_sensor, std::initializer_list<std::double_t> constants) 
-        : leftMotors(leftMotors), rightMotors(rightMotors), imu_sensor(imu_sensor) {
-            vector<double> constant = constants;
-            driveBaseRadius = constant[0];
-            gearRatio = constant[1];
-            wheelDiameter = constant[2];
-            tickPerRev = constant[3];
-        }
-
         //Methods
+        void addConstants(double d, double g, double w, double r, double t){
+            driveBaseRadius = d;
+            gearRatio = g;
+            wheelDiameter = w;
+            rpmMod = r;
+            tickPerRev = t;
+        }
 
         //Driving methods
         // @param Values range from -127 to 127
         void drive(double left, double right){
-            leftMotors.move(left);
-            rightMotors.move(right);
+            leftMotors.move_velocity(left);
+            rightMotors.move_velocity(right);
         }
 
-        void driveFront(double inches, double power){
+        void driveFront(double inches, double velocity){
             leftMotors.set_zero_position(0);
             rightMotors.set_zero_position(0);
 
@@ -49,7 +54,7 @@ class Robot{
             double currentDis = ((positionsL[0] + positionsR[0])/2);
             double currentDis2 = 0;
             double c = 0;
-            int currentPower = (int) power;
+            int currentVelocity = (int) velocity;
             double tickPerInch = tickPerRev/(6*3.1415*wheelDiameter*gearRatio);
             double targetDis = (inches*tickPerInch);
 
@@ -58,17 +63,17 @@ class Robot{
                 positionsR = rightMotors.get_positions();
                 currentDis = (positionsL[0] + positionsR[0])/2;
                 if(currentDis>targetDis){
-                    currentPower = -power;
-                    drive((currentPower),(currentPower));
+                    currentVelocity = -velocity;
+                    drive((currentVelocity * rpmMod), (currentVelocity * rpmMod));
                 } else if (currentDis < targetDis/2){
-                    drive(power,power);
-                } else if(currentDis<(((targetDis/2)*c)+(targetDis/2))){
-                    c = ((currentDis-(targetDis/2))/(targetDis/2));
-                    currentPower = power*(1-(c*c));
-                    drive(currentPower,currentPower);
+                    drive(velocity * rpmMod, velocity * rpmMod);
+                } else if(currentDis < (((targetDis/2) * c) + (targetDis/2))){
+                    c = ((currentDis - (targetDis/2))/(targetDis/2));
+                    currentVelocity = velocity * (1-(c*c));
+                    drive(currentVelocity * rpmMod,currentVelocity * rpmMod);
                 } else {
                     c = ((currentDis+(targetDis/2))/(targetDis/2));
-                    drive(currentPower,currentPower);
+                    drive(currentVelocity * rpmMod,currentVelocity * rpmMod);
                 }
 
                 positionsL = leftMotors.get_positions();
@@ -77,10 +82,10 @@ class Robot{
                 if ((currentDis2 <= (targetDis + (tickPerInch/4))) && (currentDis2 >= (targetDis - (tickPerInch/4)))){
                     counter++;
                     if(counter == 5){
-                        drive(-power,-power);
+                        drive(-velocity * rpmMod, -velocity * rpmMod);
                         pros::delay(50);
                         drive(0,0);
-                        break;
+                        return;
                     }
                 } else {
                     counter = 0;
@@ -89,7 +94,7 @@ class Robot{
             drive(0,0);
         }
 
-        void driveBack(double inches, double power){
+        void driveBack(double inches, double velocity){
             //reset motor encoders
             leftMotors.set_zero_position(0);
             rightMotors.set_zero_position(0);
@@ -100,7 +105,7 @@ class Robot{
             double currentDis = ((positionsL[0] + positionsR[0])/2);
             double currentDis2 = 0;
             double c = 0;
-            double currentPower = power;
+            double currentVelocity = velocity;
             double tickPerInch = tickPerRev/(6*3.1415*wheelDiameter*gearRatio);
             double targetDis = -(inches*tickPerInch);
 
@@ -109,27 +114,27 @@ class Robot{
                 positionsR = rightMotors.get_positions();
                 currentDis = (positionsL[0] + positionsR[0])/2;
                 if(currentDis < targetDis){
-                    currentPower = power;
-                    drive((currentPower),(currentPower));
+                    currentVelocity = velocity;
+                    drive((currentVelocity * rpmMod),(currentVelocity * rpmMod));
                 } else if (currentDis > targetDis/2){
-                    drive(-power,-power);
+                    drive(-velocity * rpmMod, -velocity * rpmMod);
                 } else if(currentDis > (((targetDis/2)*c)+(targetDis/2))){
-                    c = ((currentDis-(targetDis/2))/(targetDis/2));
-                    currentPower = power*(1-(c*c));
-                    drive(-currentPower,-currentPower);
+                    c = ((currentDis - (targetDis/2))/(targetDis/2));
+                    currentVelocity = velocity * (1-(c*c));
+                    drive(-currentVelocity * rpmMod, -currentVelocity * rpmMod);
                 } else {
                     c = ((currentDis+(targetDis/2))/(targetDis/2));
-                    drive(-currentPower,-currentPower);
+                    drive(-currentVelocity * rpmMod, -currentVelocity * rpmMod);
                 }
 
                 currentDis2 = (positionsL[0] + positionsR[0])/2;
                 if ((currentDis2 <= (targetDis + (tickPerInch/4))) && (currentDis2 >= (targetDis - (tickPerInch/4)))){
                     counter++;
                     if(counter == 5){
-                        drive(power,power);
+                        drive(velocity * rpmMod, velocity * rpmMod);
                         pros::delay(50);
                         drive(0,0);
-                        break;
+                        return;
                     }
                 } else {
                     counter = 0;
@@ -140,12 +145,12 @@ class Robot{
 
         //Turn method
         //Requires inertial sensor
-        void turn(int target, int Mpower){
+        void turn(int target, int velocity){
    
             //Initializes everything
             int stuckCount=0;
             int startingDis = 0;
-            int currentDeg= imu_sensor.get_heading();
+            int currentDeg= (imu_sensor.get_heading() + imu_sensor2.get_heading())/2;
             int lcloseVal =0;
             int rcloseVal=0;
             int count=0;
@@ -153,18 +158,7 @@ class Robot{
             float lastPosition=0;
             bool moving = false;
 
-            if(currentDeg > 0){
-                if(currentDeg >= 360){
-                    while(currentDeg >= 360){
-                        currentDeg = currentDeg - 360;
-                    }
-                }
-            } else {
-                while(currentDeg <= -360){
-                        currentDeg = currentDeg + 360;
-                    }
-                currentDeg = 360 + currentDeg;
-            }
+            updateHeading(currentDeg);
 
             //Determins what direction to turn
             if(target > currentDeg){
@@ -184,30 +178,16 @@ class Robot{
             } else{
                 startingDis = rcloseVal;
             }
-            if (startingDis < 45){
-                startingDis = 45;
-            }
             //sets the starting distance based on which ever is shortest
 
             while((!(((currentDeg<=(target+5))) && (currentDeg>=(target-5))))){
                 //Gives a little room for error so doesn't fight forever
                 //Count so it dosent exit on firt read
-                currentDeg= imu_sensor.get_heading();
+                currentDeg = (imu_sensor.get_heading() + imu_sensor2.get_heading())/2;
                 std::cout<<(currentDeg)<<std::endl;
 
                 //Updates the current heading between 0 and 360
-                if(currentDeg > 0){
-                    if(currentDeg >= 360){
-                        while(currentDeg >= 360){
-                            currentDeg = currentDeg - 360;
-                        }
-                    }
-                } else {
-                    while(currentDeg <= -360){
-                        currentDeg = currentDeg + 360;
-                    }
-                    currentDeg = 360 + currentDeg;
-                }
+                updateHeading(currentDeg);
 
                 //Same logic as above to calulate the distance
                 if(target > currentDeg){
@@ -220,115 +200,23 @@ class Robot{
 
                 //Left Turn
                 if(lcloseVal<rcloseVal){
-
-                    //if the distance is less than a 8th of the starting distance
-                    if(lcloseVal<=(startingDis/8)){
-                        if(lcloseVal<startingDis/8){
-                            if(currentPwr>10){
-                                currentPwr-=4;
-                            } else {
-                                currentPwr=10;
-                            }
-                        }
-                        drive(-1*currentPwr,currentPwr);
-                    }
-
-                    //if the distance is less than a 3rd of the starting distance
-                    else if(lcloseVal<=(startingDis/2)){
-                        if(lcloseVal<startingDis/2){
-                            if(currentPwr>(Mpower/3)){
-                                currentPwr-=4;
-                            } else {
-                                currentPwr=(Mpower/3);
-                            }
-                        }
-                        drive(-1*currentPwr,currentPwr);
-                    }
-
-                    //if the distance is less than half of the starting distance
-                    else if(lcloseVal<=(startingDis*3/4)){
-                        if(lcloseVal<startingDis*3/4){
-                            if(currentPwr>(Mpower/4)*3){
-                                currentPwr-=4;
-                            } else {
-                                currentPwr=(Mpower/4)*3;
-                            }
-                        }
-                        drive(-1*currentPwr,currentPwr);
-                    }
-                
-                    else{
-                        drive(-1*Mpower,Mpower);
-                    }
-
-                    if(lcloseVal>startingDis/2){
-                        if(currentPwr<Mpower){
-                            currentPwr+=10;
-                        } else {
-                            currentPwr=Mpower;
-                        }
-                    }
-                    //broken up so it will slow down as it gets closer and also not do rapid turn back
+                    //create a ratio of distance left and stat distance
+                    double ratio = lcloseVal/startingDis;
+                    drive(-(ratio*velocity*rpmMod), (ratio*velocity*rpmMod));
                 }
 
                 //Right Turn
                 else {
-
-                    //if the distance less is less than a 8th of the starting distance
-                    if(rcloseVal<=(startingDis/8)){
-                        if(rcloseVal<startingDis/8){
-                            if(currentPwr>10){
-                                currentPwr-=4;
-                            } else {
-                                currentPwr=10;
-                            }
-                        }
-                        drive(currentPwr,-1*currentPwr);
-                    }
-                
-                    //if the distance less is less than a 3rd of the starting distance
-                    else if(rcloseVal<=(startingDis/3)){
-                        if(rcloseVal<startingDis/3){
-                            if(currentPwr>(Mpower/3)){
-                                currentPwr-=4;
-                            } else {
-                                currentPwr=(Mpower/3);
-                            }
-                        }
-                        drive(currentPwr,-1*currentPwr);
-                    }
-                
-                    //if the distance less is less than a half of the starting distance
-                    else if(rcloseVal<=(startingDis*3/4)){
-                        if(rcloseVal<startingDis*3/4){
-                            if(currentPwr>(Mpower/4)*3){
-                                currentPwr-=4;
-                            } else {
-                                currentPwr=(Mpower/4)*3;
-                            }
-                        }
-                        drive(currentPwr,-1*currentPwr);
-                    }
-                
-                    else{
-                        drive(Mpower,-1*Mpower);
-                    }
-
-                    if(rcloseVal>startingDis/2){
-                        if(currentPwr<Mpower){
-                            currentPwr+=10;
-                        } else {
-                            currentPwr=Mpower;
-                        }
-                    }
-                    //broken up so it will slow down as it gets closer and also not do rapid turn back
+                    //create a ratio of distance left and stat distance
+                    double ratio = rcloseVal/startingDis;
+                    drive(-(ratio*velocity*rpmMod), (ratio*velocity*rpmMod));
                 }
 
                 //If within range increase count
                 if (((currentDeg<=(target+5)) && (currentDeg>=(target-5)))){
                     count++;
                     if(count == 5){
-                        break;
+                        return;
                     }
                 }
                 else {
@@ -343,6 +231,20 @@ class Robot{
 
         }
 
+        void updateHeading(int currentDeg){
+            if(currentDeg > 0){
+                if(currentDeg >= 360){
+                    while(currentDeg >= 360){
+                        currentDeg = currentDeg - 360;
+                    }
+                }
+            } else {
+                while(currentDeg <= -360){
+                        currentDeg = currentDeg + 360;
+                    }
+                currentDeg = 360 + currentDeg;
+            }
+        }
         /*Arcturn method
         * Requires driveBaseRadius, gearRatio, wheelDiameter, and tickPerRev to be initialized
         * Requires inertial sensor

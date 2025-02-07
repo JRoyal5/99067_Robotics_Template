@@ -8,20 +8,10 @@ using namespace std;
 
 extern Robot robot;
 
-extern double driveBaseRadius;
-extern double gearRatio;
-extern double wheelDiameter;
-extern double tickPerRev;
+extern map<string, int> motors;
+extern std::vector<int8_t> ports;
 
-extern int motorColor;
-
-void drive(int left, int right);
-
-void driveForward(double inches, double power);
-
-void driveBack(double inches, double power);
-
-void turn(int target, int Mpower);
+void calibratePorts();
 
 void auton();
 
