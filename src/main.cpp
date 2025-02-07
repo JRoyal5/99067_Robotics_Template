@@ -60,9 +60,9 @@ void opcontrol() {
         // }
 
         if(master.get_digital(DIGITAL_LEFT)){
-            robot.assorted[motors["conveyerbelt"]].move(127);
+            motorMove("conveyerbelt", 100);
         }else{
-            robot.assorted[motors["conveyerbelt"]].move(0);
+            motorMove("conveyerbelt", 0);
         }
         
         /*This is the method that reads the joystick input to

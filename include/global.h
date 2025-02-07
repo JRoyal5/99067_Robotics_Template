@@ -12,6 +12,8 @@ extern map<string, int> motors;
 
 extern vector<int8_t> ports;
 
+void motorMove(string name, int velocity);
+
 void auton();
 
 #endif
