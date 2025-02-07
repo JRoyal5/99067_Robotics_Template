@@ -16,13 +16,10 @@ class Robot{
         MotorGroup assorted;
         IMU imu_sensor;
         IMU imu_sensor2;
-
-        //storage for assorted motors
-        std::vector<int8_t> ports;
         
                 
         //Constructor
-        Robot(std::initializer_list<std::int8_t> leftMotors, std::initializer_list<std::int8_t> rightMotors, int imu_sensor, int imu_sensor2) 
+        Robot(std::initializer_list<std::int8_t> leftMotors, std::initializer_list<std::int8_t> rightMotors, int imu_sensor, int imu_sensor2, std::vector<int8_t> ports) 
         : leftMotors(leftMotors), rightMotors(rightMotors), imu_sensor(imu_sensor), imu_sensor2(imu_sensor2), assorted(ports) {
             
         }

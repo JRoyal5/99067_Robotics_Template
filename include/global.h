@@ -9,9 +9,8 @@ using namespace std;
 extern Robot robot;
 
 extern map<string, int> motors;
-extern std::vector<int8_t> ports;
 
-void calibratePorts();
+extern vector<int8_t> ports;
 
 void auton();
 
