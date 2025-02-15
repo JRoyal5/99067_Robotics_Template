@@ -33,8 +33,22 @@ class Robot{
             tickPerRev = t;
         }
 
+        void setBrakeMode(int i){
+            if(i = 0){
+                leftMotors.set_brake_modes(E_MOTOR_BRAKE_COAST);
+                rightMotors.set_brake_modes(E_MOTOR_BRAKE_COAST);
+                assorted.set_brake_modes(E_MOTOR_BRAKE_COAST);
+            } else if(i = 1){
+                leftMotors.set_brake_modes(E_MOTOR_BRAKE_BRAKE);
+                rightMotors.set_brake_modes(E_MOTOR_BRAKE_BRAKE);
+                assorted.set_brake_modes(E_MOTOR_BRAKE_BRAKE);
+            } else if(i = 2){
+                leftMotors.set_brake_modes(E_MOTOR_BRAKE_HOLD);
+                rightMotors.set_brake_modes(E_MOTOR_BRAKE_HOLD);
+                assorted.set_brake_modes(E_MOTOR_BRAKE_HOLD);
+            }
+        }
         //Driving methods
-        // @param Values range from -127 to 127
         void drive(double left, double right){
             leftMotors.move_velocity(left);
             rightMotors.move_velocity(right);
@@ -147,7 +161,7 @@ class Robot{
             //Initializes everything
             int stuckCount=0;
             int startingDis = 0;
-            int currentDeg= (imu_sensor.get_heading() + imu_sensor2.get_heading())/2;
+            int currentDeg = (imu_sensor.get_heading() + imu_sensor2.get_heading())/2;
             int lcloseVal =0;
             int rcloseVal=0;
             int count=0;
@@ -155,7 +169,7 @@ class Robot{
             float lastPosition=0;
             bool moving = false;
 
-            updateHeading(currentDeg);
+            // updateHeading(currentDeg);
 
             //Determins what direction to turn
             if(target > currentDeg){
@@ -184,7 +198,7 @@ class Robot{
                 std::cout<<(currentDeg)<<std::endl;
 
                 //Updates the current heading between 0 and 360
-                updateHeading(currentDeg);
+                // updateHeading(currentDeg);
 
                 //Same logic as above to calulate the distance
                 if(target > currentDeg){
@@ -199,7 +213,18 @@ class Robot{
                 if(lcloseVal<rcloseVal){
                     //create a ratio of distance left and stat distance
                     double ratio = lcloseVal/startingDis;
-                    drive(-(ratio*velocity*rpmMod), (ratio*velocity*rpmMod));
+                    string data = to_string(lcloseVal);
+                    lcd::set_text(2, data);
+                    if(lcloseVal > startingDis/10){
+                        drive(-(velocity*rpmMod)/10, (velocity*rpmMod)/10);
+                    }
+                    else if(lcloseVal < startingDis/5){
+                        drive(-(velocity*rpmMod)/10, (velocity*rpmMod)/10);
+                    }else if(lcloseVal < startingDis/2){
+                        drive(-(velocity*rpmMod)/2, (velocity*rpmMod)/2);
+                    }else{
+                        drive(-(velocity*rpmMod), (velocity*rpmMod));
+                    }
                 }
 
                 //Right Turn

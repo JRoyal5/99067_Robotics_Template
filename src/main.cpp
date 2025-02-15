@@ -60,9 +60,9 @@ void opcontrol() {
         // }
 
         if(master.get_digital(DIGITAL_LEFT)){
-            motorMove("conveyerbelt", 100);
+            robot.turn(270, 50);
         }else{
-            motorMove("conveyerbelt", 0);
+            
         }
         
         /*This is the method that reads the joystick input to
