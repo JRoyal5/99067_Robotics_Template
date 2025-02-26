@@ -21,7 +21,7 @@ class Robot{
         //Constructor
         Robot(std::initializer_list<std::int8_t> leftMotors, std::initializer_list<std::int8_t> rightMotors, int imu_sensor, int imu_sensor2, std::vector<int8_t> ports) 
         : leftMotors(leftMotors), rightMotors(rightMotors), imu_sensor(imu_sensor), imu_sensor2(imu_sensor2), assorted(ports) {
-            
+
         }
 
         //Methods
@@ -50,8 +50,8 @@ class Robot{
         }
         //Driving methods
         void drive(double left, double right){
-            leftMotors.move_velocity(left);
-            rightMotors.move_velocity(right);
+            leftMotors.move_velocity(left*rpmMod);
+            rightMotors.move_velocity(right*rpmMod);
         }
 
         void driveFront(double inches, double velocity){
@@ -154,22 +154,21 @@ class Robot{
             drive(0,0);
         }
 
-        //Turn method
+        //Turn methods
         //Requires inertial sensor
+        void offSet(double offset){
+            imu_sensor.set_heading(offset);
+            imu_sensor2.set_heading(offset);
+        }
+        
         void turn(int target, int velocity){
    
             //Initializes everything
-            int stuckCount=0;
             int startingDis = 0;
             int currentDeg = (imu_sensor.get_heading() + imu_sensor2.get_heading())/2;
-            int lcloseVal =0;
-            int rcloseVal=0;
-            int count=0;
-            int currentPwr = 0;
-            float lastPosition=0;
-            bool moving = false;
-
-            // updateHeading(currentDeg);
+            int lcloseVal = 0;
+            int rcloseVal = 0;
+            int count = 0;
 
             //Determins what direction to turn
             if(target > currentDeg){
@@ -195,7 +194,6 @@ class Robot{
                 //Gives a little room for error so doesn't fight forever
                 //Count so it dosent exit on firt read
                 currentDeg = (imu_sensor.get_heading() + imu_sensor2.get_heading())/2;
-                std::cout<<(currentDeg)<<std::endl;
 
                 //Updates the current heading between 0 and 360
                 // updateHeading(currentDeg);
@@ -215,15 +213,11 @@ class Robot{
                     double ratio = lcloseVal/startingDis;
                     string data = to_string(lcloseVal);
                     lcd::set_text(2, data);
-                    if(lcloseVal > startingDis/10){
-                        drive(-(velocity*rpmMod)/10, (velocity*rpmMod)/10);
+                    if(lcloseVal < 15 && lcloseVal > -15){
+                        drive(-20, 20);
                     }
-                    else if(lcloseVal < startingDis/5){
-                        drive(-(velocity*rpmMod)/10, (velocity*rpmMod)/10);
-                    }else if(lcloseVal < startingDis/2){
-                        drive(-(velocity*rpmMod)/2, (velocity*rpmMod)/2);
-                    }else{
-                        drive(-(velocity*rpmMod), (velocity*rpmMod));
+                    else if(lcloseVal < startingDis*ratio){
+                        drive(-velocity*ratio, velocity*ratio);
                     }
                 }
 
@@ -231,7 +225,108 @@ class Robot{
                 else {
                     //create a ratio of distance left and stat distance
                     double ratio = rcloseVal/startingDis;
-                    drive(-(ratio*velocity*rpmMod), (ratio*velocity*rpmMod));
+                    string data = to_string(lcloseVal);
+                    lcd::set_text(2, data);
+                    if(rcloseVal < 15 && rcloseVal > -15){
+                        drive(20, -20);
+                    }
+                    else if(rcloseVal < startingDis*ratio){
+                        drive(velocity*ratio, -velocity*ratio);
+                    }
+                }
+
+                //If within range increase count
+                if (((currentDeg <= (target+5)) && (currentDeg >= (target-5)))){
+                    count++;
+                    if(count == 5){
+                        return;
+                    }
+                }
+                else {
+                    count = 0;
+                    //If not reset count
+                }
+                
+                pros::delay(10);
+                // delay matches the update delay of inertial sensor so it is not using one read for multiple times
+            drive(0,0);
+            }
+
+        }
+
+        void turnBy(int target, int velocity){
+   
+            //Initializes everything
+            int startingDis = 0;
+            int currentDeg = (imu_sensor.get_heading() + imu_sensor2.get_heading())/2;
+            int lcloseVal = 0;
+            int rcloseVal = 0;
+            int count = 0;
+            float lastPosition = 0;
+            bool moving = false;
+            bool left = false;
+
+            // updateHeading(currentDeg);
+
+            //Determins what direction to turn
+            if(abs(target) != target){
+                left = true;
+            }
+
+            if(target > currentDeg){
+                lcloseVal = abs(currentDeg + abs(360 - target));
+                //since current is less than target it needs to add on the distance target is from 360
+                rcloseVal = abs(target - currentDeg);
+                //gets the distance it is if it where to turn Right
+            }else {
+                lcloseVal = abs(currentDeg - target);
+                //gets the distance it is if it where to turn Left
+                rcloseVal = abs(target + abs(360 - currentDeg));
+                //since Target is greater than current it needs to add on the distance current is from 360
+            }
+
+            while((!(((currentDeg<=(target+5))) && (currentDeg>=(target-5))))){
+                //Gives a little room for error so doesn't fight forever
+                //Count so it dosent exit on firt read
+                currentDeg = (imu_sensor.get_heading() + imu_sensor2.get_heading())/2;
+                if(target > currentDeg){
+                    lcloseVal = abs(currentDeg + abs(360 - target));
+                    //since current is less than target it needs to add on the distance target is from 360
+                    rcloseVal = abs(target - currentDeg);
+                    //gets the distance it is if it where to turn Right
+                }else {
+                    lcloseVal = abs(currentDeg - target);
+                    //gets the distance it is if it where to turn Left
+                    rcloseVal = abs(target + abs(360 - currentDeg));
+                    //since Target is greater than current it needs to add on the distance current is from 360
+                }
+
+                //Left Turn
+                if(left){
+                    //create a ratio of distance left and stat distance
+                    double ratio = lcloseVal/startingDis;
+                    string data = to_string(lcloseVal);
+                    lcd::set_text(2, data);
+                    if(lcloseVal < 15 && lcloseVal > -15){
+                        drive(-20, 20);
+                    }
+                    else if(lcloseVal < startingDis*ratio){
+                        drive(-velocity*ratio, velocity*ratio);
+                    }
+                }
+
+                //Right Turn
+                else {
+                    //create a ratio of distance left and stat distance
+                    double ratio = rcloseVal/startingDis;
+                    string data = to_string(lcloseVal);
+                    lcd::set_text(2, data);
+                    if(rcloseVal < 15 && rcloseVal > -15){
+                        drive(-20, 20);
+                    }
+                    else if(rcloseVal < startingDis*ratio){
+                        drive(velocity*ratio, -velocity*ratio);
+                    }
                 }
 
                 //If within range increase count
@@ -252,23 +347,4 @@ class Robot{
             }
 
         }
-
-        void updateHeading(int currentDeg){
-            if(currentDeg > 0){
-                if(currentDeg >= 360){
-                    while(currentDeg >= 360){
-                        currentDeg = currentDeg - 360;
-                    }
-                }
-            } else {
-                while(currentDeg <= -360){
-                        currentDeg = currentDeg + 360;
-                    }
-                currentDeg = 360 + currentDeg;
-            }
-        }
-        /*Arcturn method
-        * Requires driveBaseRadius, gearRatio, wheelDiameter, and tickPerRev to be initialized
-        * Requires inertial sensor
-        */
 };

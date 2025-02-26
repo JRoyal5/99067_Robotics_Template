@@ -33,6 +33,7 @@ void on_center_button() {
 void initialize() {
     lcd::initialize();
     robot.addConstants(18, .5, 3.25, 6, 1800);
+    robot.setBrakeMode(2);
 }
 
 //This is the segment that allows you to control your robot during the driver period
